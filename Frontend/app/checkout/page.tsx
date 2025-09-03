@@ -51,11 +51,39 @@ export default function CheckoutPage() {
     e.preventDefault()
     setIsProcessing(true)
 
-    // Simulate order processing
-    setTimeout(() => {
-      clearCart()
-      router.push("/order-confirmation")
-    }, 2000)
+    // Build order data from cart and form (no productId, just name, quantity, price)
+    const orderData = {
+      items: state.items.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+      total: state.total,
+      customerName: formData.firstName + " " + formData.lastName,
+      customerEmail: formData.email,
+      customerAddress: formData.address,
+      // Add other fields as needed
+    }
+
+    try {
+      const res = await fetch("http://localhost:4000/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderData),
+      })
+      const result = await res.json()
+      if (res.ok) {
+        clearCart()
+        alert("Order placed successfully!")
+        router.push("/order-confirmation")
+      } else {
+        alert("Order failed: " + result.message)
+      }
+    } catch (err) {
+      alert("Order error: " + err)
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   if (state.items.length === 0) {

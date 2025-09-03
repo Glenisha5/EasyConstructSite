@@ -4,11 +4,11 @@ import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
 import { MessageCircle, X, Send, Bot, User, Minimize2, Maximize2 } from "lucide-react"
-import { Button } from "../components/ui/button"
-import { Input } from "../components/ui/input"
-import { Card, CardContent, CardHeader } from "../components/ui/card"
-import { ScrollArea } from "../components/ui/scroll-area"
-import { useLanguage } from "../contexts/language-context"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { useLanguage } from "@/contexts/language-context"
 
 interface Message {
   id: string

@@ -7,9 +7,52 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Signup:", { name, email, password });
+    setError("");
+    if (!name.trim()) {
+      setError("Please enter your full name.");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return;
+    }
+    try {
+      const res = await fetch("http://localhost:4000/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        setError("Unexpected server response. Please try again later.");
+        return;
+      }
+
+      if (!res.ok) {
+        setError(data.message || "Signup failed");
+        return;
+      }
+
+      alert("Signup successful! Redirecting to login...");
+      window.location.href = "/login";
+    } catch (err: any) {
+      setError(err.message || "Signup error");
+    }
   };
 
   return (
@@ -19,6 +62,9 @@ export default function SignupPage() {
           Create Account
         </h2>
         <form onSubmit={handleSubmit} className="space-y-5">
+          {error && (
+            <p className="text-sm text-red-600 text-center bg-red-50 p-2 rounded mb-2">{error}</p>
+          )}
           {/* Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

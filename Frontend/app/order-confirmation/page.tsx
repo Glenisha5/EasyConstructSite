@@ -14,6 +14,7 @@ export default function OrderConfirmationPage() {
   const orderNumber = "EC" + Math.random().toString(36).substr(2, 9).toUpperCase()
   const deliveryDate = new Date()
   deliveryDate.setDate(deliveryDate.getDate() + 5)
+  
 
   return (
     <div className="min-h-screen bg-background">
@@ -104,4 +105,42 @@ export default function OrderConfirmationPage() {
                 </div>
                 <div className="flex-1 h-0.5 bg-muted mx-4"></div>
                 <div className="flex flex-col items-center space-y-2">
-                  <div className="w-10 h-10 bg-\
+                  <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                    {/* Add an icon or status here if needed */}
+                  </div>
+                  <span className="text-sm text-muted-foreground">{t("delivered")}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Simple function to send order data to backend
+async function submitOrder(orderData: any) {
+  try {
+    const res = await fetch("http://localhost:4000/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(orderData),
+    });
+    const result = await res.json();
+    if (res.ok) {
+      alert("Order placed successfully!");
+      console.log("Order response:", result);
+    } else {
+      alert("Order failed: " + result.message);
+      console.error(result);
+    }
+  } catch (err) {
+    alert("Order error: " + err);
+    console.error(err);
+  }
+}
+
+// Example usage (replace with your actual order data)
+// submitOrder({
+//   items: [{ productId: "PRODUCT_ID_HERE", quantity: 2 }],

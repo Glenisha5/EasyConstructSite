@@ -1,11 +1,11 @@
 import type { Metadata } from "next"
 import { Playfair_Display, Source_Sans_3 } from "next/font/google"
-import { CartProvider } from "../contexts/cart-context"
-import { LanguageProvider } from "../contexts/language-context"
-import AIChatbot from "../components/ai-chatbot"
+import { CartProvider } from "@/contexts/cart-context"
+import { LanguageProvider } from "@/contexts/language-context"
+import AIChatbot from "@/components/ai-chatbot"
 import "./globals.css"
-import { AuthProvider } from "../contexts/auth-context"
-import { ThemeProvider } from "../components/theme-provider"
+import { AuthProvider } from "@/contexts/auth-context"
+import { ThemeProvider } from "@/components/theme-provider"
 
 const playfairDisplay = Playfair_Display({
   subsets: ["latin"],

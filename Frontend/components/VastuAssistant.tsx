@@ -2,10 +2,10 @@
 
 import { useState } from "react"
 import { Compass, Send, X } from "lucide-react"
-import { Button } from "../components/ui/button"
-import { Input } from "../components/ui/input"
-import { Card, CardContent, CardHeader } from "../components/ui/card"
-import { ScrollArea } from "../components/ui/scroll-area"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface Message {
   id: string

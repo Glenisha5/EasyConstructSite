@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useReducer, useEffect } from "react"
+import { useAuth } from "@/contexts/auth-context"
 
 export interface CartItem {
   id: number
@@ -114,6 +115,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     itemCount: 0,
   })
 
+  const { user } = useAuth()
+
   // Load cart from localStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem("easyconstruct-cart")
@@ -132,20 +135,61 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem("easyconstruct-cart", JSON.stringify(state.items))
   }, [state.items])
 
+  const syncCartToBackend = (items: CartItem[], total: number) => {
+    fetch("http://localhost:4000/api/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: user?.email || "",
+        items,
+        total,
+      }),
+    })
+      .then(res => res.json())
+      .then(data => console.log("Cart POST response:", data))
+      .catch(err => console.error("Cart POST error:", err))
+  }
+
+  function combineCartItems(items: CartItem[]): CartItem[] {
+    return items.reduce((acc, curr) => {
+      const found = acc.find(i => i.name === curr.name && i.price === curr.price)
+      if (found) {
+        found.quantity += curr.quantity
+      } else {
+        acc.push({ ...curr })
+      }
+      return acc
+    }, [] as CartItem[])
+  }
+
   const addItem = (item: Omit<CartItem, "quantity">) => {
     dispatch({ type: "ADD_ITEM", payload: item })
+    console.log("Cart item added:", item)
+    const combinedItems = combineCartItems([...state.items, { ...item, quantity: 1 }])
+    setTimeout(() => {
+      syncCartToBackend(combinedItems, combinedItems.reduce((sum, i) => sum + i.price * i.quantity, 0))
+    }, 0)
   }
 
   const removeItem = (id: number) => {
     dispatch({ type: "REMOVE_ITEM", payload: id })
+    const updatedItems = state.items.filter((item) => item.id !== id)
+    const combinedItems = combineCartItems(updatedItems)
+    syncCartToBackend(combinedItems, combinedItems.reduce((sum, item) => sum + item.price * item.quantity, 0))
   }
 
   const updateQuantity = (id: number, quantity: number) => {
     dispatch({ type: "UPDATE_QUANTITY", payload: { id, quantity } })
+    const updatedItems: CartItem[] = state.items
+      .map((item: CartItem) => item.id === id ? { ...item, quantity } : item)
+      .filter((item: CartItem) => item.quantity > 0)
+    const combinedItems = combineCartItems(updatedItems)
+    syncCartToBackend(combinedItems, combinedItems.reduce((sum: number, item: CartItem) => sum + item.price * item.quantity, 0))
   }
 
   const clearCart = () => {
     dispatch({ type: "CLEAR_CART" })
+    syncCartToBackend([], 0)
   }
 
   return (

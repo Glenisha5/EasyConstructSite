@@ -1,24 +1,24 @@
 "use client"
 
 import { useState } from "react"
-import { Search, Filter, ShoppingCart, Menu, MapPin, Phone, Mail, Globe, Eye } from "lucide-react"
-import { Button } from "../components/ui/button"
-import { Input } from "../components/ui/input"
-import { Card, CardContent } from "../components/ui/card"
-import { Badge } from "../components/ui/badge"
-import { useCart } from "../contexts/cart-context"
-import { useLanguage } from "../contexts/language-context"
+import { Search, Filter, ShoppingCart, Menu, MapPin, Phone, Mail, Globe } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { useCart } from "@/contexts/cart-context"
+import { useLanguage } from "@/contexts/language-context"
 import Link from "next/link"
 import Spline from "@splinetool/react-spline"
 import AboutPage from "./about/page"
 import ContactPage from "./contact/page"
 import PrivacyPolicyPage from "./privacy/page"
 import TermsOfServicePage from "./terms/page"
-import { useAuth } from "../contexts/auth-context"
+import { useAuth } from "@/contexts/auth-context"
 import { Compass } from "lucide-react"
-import AIChatbot from "../components/ai-chatbot"
-import VastuAssistant from "../components/VastuAssistant"
-import ThemeToggle from "../components/theme-toggle"
+import AIChatbot from "@/components/ai-chatbot"
+import VastuAssistant from "@/components/VastuAssistant"
+import ThemeToggle from "@/components/theme-toggle"
 import Image from "next/image"
 
 export default function HomePage() {
@@ -131,27 +131,13 @@ export default function HomePage() {
 
         {/* Navigation Icons */}
             <div className="flex items-center space-x-4">
-            <Link href="/AR-view">
-            <Button variant="ghost" size="sm" className="hidden md:flex">
-            <Eye className="h-4 w-4 mr-2"/>
-            {t("AR View")}
-            </Button>
-            </Link>
-            </div>
-            <Link href="/AR">
-            <Button variant="ghost" size="icon" className="flex md:hidden">
-            <Eye className="h-5 w-5" />
-            </Button>
-            </Link>
-
-            <div className="flex items-center space-x-4">
             <Link href="/products">
             <Button variant="ghost" size="sm" className="hidden md:flex">
             <Filter className="h-4 w-4 mr-2" />
             {t("categories")}
             </Button>
             </Link>
-            <ThemeToggle/>
+            {/* <ThemeToggle/> */}
             <Button variant="ghost" size="sm" onClick={toggleLanguage}>
             <Globe className="h-4 w-4 mr-2" />
             {language === "en" ? "हिं" : "EN"}
@@ -226,11 +212,11 @@ export default function HomePage() {
       </section>
 
       {/* Spline Viewer Section */}
-      <section className="py-16">
+      {/* <section className="py-16">
         <div className="container mx-auto px-4">
           <Spline scene="https://prod.spline.design/4dJ4PXYPas5yIkm6/scene.splinecode" />
           </div>
-          </section>
+          </section> */}
 
       {/* Popular Categories */}
       <section className="py-16">
@@ -238,7 +224,6 @@ export default function HomePage() {
           <div className="text-center mb-12">
             <h3 className="font-playfair font-bold text-3xl text-foreground mb-4">{t("popularCategories")}</h3>
           </div>
-            
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {categories.map((category, index) => (

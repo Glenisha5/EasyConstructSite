@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export default function LoginPage() {
-  const {login} =useAuth()
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error,setError]=useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const validateEmail=(email:string)=>{
     const regex= /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -17,19 +18,26 @@ export default function LoginPage() {
   };
   
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if(!validateEmail(email)){
+    if (!validateEmail(email)) {
       setError("Please enter a valid email address");
       return;
     }
-    if(password.length<6){
+    if (password.length < 6) {
       setError("Password must be at least 6 characters long");
       return;
     }
     setError("");
-    login(email,password);
-    window.location.href="/";
+    setIsLoading(true);
+    try {
+      await login(email, password);
+      window.location.href = "/";
+    } catch (err: any) {
+      setError(err.message || "Failed to login. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -81,15 +89,15 @@ export default function LoginPage() {
           )}
           {/* Button */}
           <button
-          type="submit"
-          disabled={!email || !password || !validateEmail(email)}
-          className={`w-full py-2 rounded-xl text-white font-medium transition ${
-          !email || !password || !validateEmail(email)
-          ? "bg-gray-400 cursor-not-allowed"
-          : "bg-blue-600 hover:bg-blue-700"
-          }`}
+            type="submit"
+            disabled={!email || !password || !validateEmail(email) || isLoading}
+            className={`w-full py-2 rounded-xl text-white font-medium transition ${
+              !email || !password || !validateEmail(email) || isLoading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700"
+            }`}
           >
-          Sign In
+            {isLoading ? "Signing In..." : "Sign In"}
           </button>
 
         </form>

@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { X, RotateCcw, Maximize, Camera } from "lucide-react"
-import { Button } from "../components/ui/button"
-import { Card, CardContent } from "../components/ui/card"
-import { Badge } from "../components/ui/badge"
-import { Slider } from "../components/ui/slider"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
-import { useLanguage } from "../contexts/language-context"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Slider } from "@/components/ui/slider"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useLanguage } from "@/contexts/language-context"
 
 interface ARVRPreviewProps {
   product: {
