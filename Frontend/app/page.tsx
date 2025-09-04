@@ -192,9 +192,11 @@ export default function HomePage() {
               </h2>
               <p className="text-lg text-muted-foreground leading-relaxed">{t("heroSubtitle")}</p>
               <div className="flex flex-col sm:flex-row gap-4">
+                <Link href="/shops">
                 <Button size="lg" className="bg-primary hover:bg-primary/90">
                   {t("shopNow")}
                 </Button>
+                </Link>
                 <Button variant="outline" size="lg">
                   {t("exploreCategories")}
                 </Button>

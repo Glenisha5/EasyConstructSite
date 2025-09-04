@@ -26,7 +26,7 @@ app.use("/api/cart", cartRoutes);
 // Health
 app.get("/health", (_, res) => res.json({ ok: true }));
 
-const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/shop";
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://glenishadsouza:glenisha12345@cluster0.tk0ht9r.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 const PORT = process.env.PORT || 4000;
 
 mongoose
