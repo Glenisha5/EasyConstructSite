@@ -1,9 +1,10 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useRef, useEffect } from "react"
-import { MessageCircle, X, Send, Bot, User, Minimize2, Maximize2 } from "lucide-react"
+import React, { useState, useRef, useEffect } from "react"
+// TypeScript browser API types workaround
+type SpeechRecognitionType = typeof window extends { SpeechRecognition: infer T } ? T : any
+type SpeechRecognitionEventType = typeof window extends { SpeechRecognitionEvent: infer T } ? T : any
+import { MessageCircle, X, Send, Bot, User, Minimize2, Maximize2, Mic, MicOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -18,12 +19,17 @@ interface Message {
 }
 
 export default function AIChatbot() {
-  const { language } = useLanguage()
+  const { language: contextLanguage, setLanguage: setContextLanguage } = useLanguage()
+  const [language, setLanguage] = useState<"en" | "hi" | "kn">(contextLanguage || "en")
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState("")
   const [isTyping, setIsTyping] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [statusMessage, setStatusMessage] = useState("")
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  const recognitionRef = useRef<any>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const translations = {
@@ -81,38 +87,96 @@ export default function AIChatbot() {
 }
   const t = translations[language]
 
-  // Mock AI responses
-  const getAIResponse = (userMessage: string): string => {
-    const message = userMessage.toLowerCase()
+  // Sync context language
+  useEffect(() => {
+    setContextLanguage && setContextLanguage(language)
+  }, [language, setContextLanguage])
 
-    if (language === "hi") {
-      if (message.includes("सीमेंट") || message.includes("cement")) {
-        return "नींव के लिए OPC 53 ग्रेड सीमेंट सबसे अच्छा है। यह उच्च शक्ति प्रदान करता है। UltraTech और ACC अच्छे ब्रांड हैं। क्या आपको कोई विशिष्ट मात्रा की जानकारी चाहिए?"
+
+  // Call AI backend API
+  const fetchAIResponse = async (userMessage: string): Promise<string> => {
+    try {
+      const response = await fetch("https://macaque-touched-dassie.ngrok-free.app/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: userMessage, lang: language }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      if (message.includes("पेंट") || message.includes("paint")) {
-        return "1000 वर्ग फुट के लिए लगभग 40-50 लीटर पेंट की जरूरत होती है (2 कोट के लिए)। Asian Paints और Berger अच्छे विकल्प हैं। आपको किस रूम के लिए पेंट चाहिए?"
+      const data = await response.json();
+      return data.reply || "Sorry, I couldn't get a response from the assistant.";
+    } catch (error) {
+      return "Failed to get a response from the assistant.";
+    }
+  };
+
+  // Speech recognition
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition()
+      recognition.lang = language === "hi" ? "hi-IN" : language === "kn" ? "kn-IN" : "en-US"
+      recognition.interimResults = false
+      recognition.maxAlternatives = 1
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript
+        handleUserMessage(transcript)
       }
-      if (message.includes("स्टील") || message.includes("steel")) {
-        return "आज TMT स्टील बार की कीमत ₹45-48 प्रति किलो है। TATA Steel और JSW अच्छी गुणवत्ता देते हैं। आपको किस साइज़ की बार चाहिए?"
+
+      recognition.onend = () => {
+        setIsRecording(false)
+        setStatusMessage("")
       }
-      if (message.includes("टाइल") || message.includes("tile")) {
-        return "बाथरूम के लिए anti-slip ceramic tiles सबसे अच्छी हैं। Kajaria और Somany अच्छे ब्रांड हैं। साइज़ 300x300mm या 600x600mm लें।"
+
+      recognition.onerror = (event: any) => {
+        setStatusMessage("Voice input error: " + event.error)
+        setIsRecording(false)
       }
-      return "मैं आपकी निर्माण सामग्री की जरूरतों में मदद कर सकता हूं। कृपया सीमेंट, पेंट, स्टील, या टाइल्स के बारे में पूछें।"
+
+      recognitionRef.current = recognition
     } else {
-      if (message.includes("cement")) {
-        return "For foundation work, OPC 53 Grade cement is best. It provides high strength and durability. UltraTech and ACC are reliable brands. Do you need quantity calculations for your project?"
+      setStatusMessage("⚠️ Voice input not supported in this browser.")
+    }
+  }, [language])
+
+  // Text-to-speech
+  const speakText = (text: string) => {
+    if ("speechSynthesis" in window) {
+      // Cancel any ongoing speech before starting new
+      if (speechSynthesis.speaking) {
+        speechSynthesis.cancel()
       }
-      if (message.includes("paint")) {
-        return "For 1000 sq ft, you'll need approximately 40-50 liters of paint (for 2 coats). Asian Paints and Berger offer excellent quality. What type of room are you painting?"
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = language === "hi" ? "hi-IN" : language === "kn" ? "kn-IN" : "en-US"
+      utterance.pitch = 1
+      utterance.rate = 1
+      utterance.onstart = () => {
+        setStatusMessage("Assistant is speaking...")
+        setIsSpeaking(true)
       }
-      if (message.includes("steel")) {
-        return "Current TMT steel bar prices are ₹45-48 per kg. TATA Steel and JSW provide good quality. What diameter bars do you need for your construction?"
+      utterance.onend = () => {
+        setStatusMessage("")
+        setIsSpeaking(false)
       }
-      if (message.includes("tile")) {
-        return "For bathrooms, anti-slip ceramic tiles are recommended. Kajaria and Somany are trusted brands. Consider 300x300mm or 600x600mm sizes for better aesthetics."
+      utterance.onpause = () => setStatusMessage("Speech paused.")
+      utterance.onresume = () => setStatusMessage("Assistant is speaking...")
+      utterance.onerror = () => {
+        setStatusMessage("")
+        setIsSpeaking(false)
       }
-      return "I can help you with construction materials like cement, paint, steel, tiles, and more. What specific information do you need for your project?"
+      speechSynthesis.speak(utterance)
+    }
+  }
+
+  const stopSpeaking = () => {
+    if ("speechSynthesis" in window && speechSynthesis.speaking) {
+      speechSynthesis.cancel()
+      setStatusMessage("")
+      setIsSpeaking(false)
     }
   }
 
@@ -137,36 +201,67 @@ export default function AIChatbot() {
     }
   }, [isOpen, t.welcomeMessage])
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim()) return
-
+  // Add user message and send to backend
+  const handleUserMessage = (text: string) => {
     const userMessage: Message = {
       id: Date.now().toString(),
       type: "user",
-      content: inputValue,
+      content: text,
       timestamp: new Date(),
     }
-
     setMessages((prev) => [...prev, userMessage])
-    setInputValue("")
-    setIsTyping(true)
+    sendToChatbot(text)
+  }
 
-    // Simulate AI thinking time
-    setTimeout(() => {
+  // Send message to backend
+  const sendToChatbot = async (message: string) => {
+    setIsTyping(true)
+    setStatusMessage("Sending to assistant...")
+    try {
+      const aiReply = await fetchAIResponse(message)
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),
         type: "bot",
-        content: getAIResponse(inputValue),
+        content: aiReply,
         timestamp: new Date(),
       }
       setMessages((prev) => [...prev, botResponse])
+      speakText(aiReply)
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        { id: Date.now().toString(), type: "bot", content: "⚠️ Error contacting server.", timestamp: new Date() },
+      ])
+    } finally {
       setIsTyping(false)
-    }, 1500)
+      setStatusMessage("")
+    }
+  }
+
+  // Send text input
+  const handleSendMessage = () => {
+    if (!inputValue.trim()) return
+    handleUserMessage(inputValue.trim())
+    setInputValue("")
+  }
+
+  // Toggle voice recording
+  const toggleRecording = () => {
+    if (!recognitionRef.current) return
+    if (isRecording) {
+      recognitionRef.current.stop()
+      setIsRecording(false)
+    } else {
+      recognitionRef.current.lang = language === "hi" ? "hi-IN" : language === "kn" ? "kn-IN" : "en-US"
+      recognitionRef.current.start()
+      setIsRecording(true)
+      setStatusMessage("🎤 Listening...")
+    }
   }
 
   const handleQuickQuestion = (question: string) => {
-    setInputValue(question)
-    handleSendMessage()
+    setInputValue("")
+    handleUserMessage(question)
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -191,7 +286,7 @@ export default function AIChatbot() {
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
-      <Card className={`w-80 shadow-2xl transition-all duration-300 ${isMinimized ? "h-16" : "h-96"}`}>
+  <Card className={`w-[28rem] shadow-2xl transition-all duration-300 ${isMinimized ? "h-16" : "h-[36rem]"}`}> 
         <CardHeader className="p-4 bg-orange-500 text-white rounded-t-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -202,6 +297,16 @@ export default function AIChatbot() {
               </div>
             </div>
             <div className="flex items-center space-x-1">
+              <select
+                value={language}
+                onChange={e => setLanguage(e.target.value as any)}
+                className="text-black text-xs rounded-md px-2 py-1 bg-white"
+                style={{ minWidth: 70 }}
+              >
+                <option value="en">English</option>
+                <option value="hi">हिन्दी</option>
+                <option value="kn">ಕನ್ನಡ</option>
+              </select>
               <Button
                 variant="ghost"
                 size="sm"
@@ -287,25 +392,47 @@ export default function AIChatbot() {
             </ScrollArea>
 
             {/* Input Area */}
-            <div className="p-4 border-t">
-              <div className="flex space-x-2">
-                <Input
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder={t.placeholder}
-                  className="flex-1 text-sm"
-                />
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={!inputValue.trim() || isTyping}
-                  size="sm"
-                  className="bg-orange-500 hover:bg-orange-600"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
+            <div className="p-4 border-t flex items-center space-x-2">
+              <Button
+                onClick={toggleRecording}
+                className={`p-2 rounded-full ${isRecording ? "bg-red-500" : "bg-orange-500"} text-white`}
+              >
+                {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+              </Button>
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={t.placeholder}
+                className="flex-1 text-sm"
+              />
+              <Button
+                onClick={handleSendMessage}
+                disabled={!inputValue.trim() || isTyping}
+                size="sm"
+                className="bg-orange-500 hover:bg-orange-600"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
             </div>
+            {/* Status and Stop button inside chat box */}
+            {(statusMessage || isSpeaking) && (
+              <div className="flex items-center justify-center py-1">
+                {statusMessage && (
+                  <div className="text-xs text-center text-gray-500 mr-2">{statusMessage}</div>
+                )}
+                {isSpeaking && (
+                  <Button
+                    onClick={stopSpeaking}
+                    size="sm"
+                    className="bg-red-500 hover:bg-red-600 text-white"
+                    title="Stop Speaking"
+                  >
+                    Stop
+                  </Button>
+                )}
+              </div>
+            )}
           </CardContent>
         )}
       </Card>
